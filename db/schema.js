@@ -8,3 +8,9 @@ export const gadgetsTable = pgTable("gadgets", {
     status: status().notNull().default("Available"),
     decommissioned_at: timestamp(),
 })
+
+export const usersTable = pgTable("users", {
+    id: uuid().defaultRandom().primaryKey(),
+    username: text().unique().notNull(),
+    password: text().notNull(),
+})
