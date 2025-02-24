@@ -1,9 +1,9 @@
 import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import express from 'express';
-import { gadgetsTable } from './db/schema.js';
+import { gadgetsTable, usersTable } from './db/schema.js';
 import { generate } from 'random-words';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 
 const app = express();
@@ -13,8 +13,6 @@ app.use(express.json());
 
 const db = drizzle(process.env.DATABASE_URL);
 
-let USERS = [];
-
 const secretKey = process.env.JWT_SECRET;
 
 const generateJwt = (user) => {
@@ -23,45 +21,52 @@ const generateJwt = (user) => {
 }
 
 const userAuthenticate = (req, res, next) => {
-const authHeader = req.headers.authorization;
-if (authHeader){
-    const token = authHeader.split(' ')[1];
-    jwt.verify(token, secretKey, (error, user)=>{
-        if (error){
-            return res.status(403).json({ error: error.message })
-        }
-        req.user = user;
-        next();
-    })
-}
-else{
-    return res.status(403).json({message:"Admin authentication failed" })
-}
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+        const token = authHeader.split(' ')[1];
+        jwt.verify(token, secretKey, (error, user) => {
+            if (error) {
+                return res.status(403).json({ error: error.message })
+            }
+            req.user = user;
+            next();
+        })
+    }
+    else {
+        return res.status(403).json({ message: "Admin authentication failed" })
+    }
 }
 
 // create signup route
-app.post('/gadgets/signup', (req, res) => {
-    const user = req.body;
-    const existingUser = USERS.find(u => u.username === user.username);
-    if (existingUser) {
-        res.status(403).json({ message: 'user already exist' })
-    } else {
-        USERS.push(user);
-        const token = generateJwt(user);
-        res.json({ message: 'User created successfully', token })
+app.post('/gadgets/signup', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const existingUser = await db.select().from(usersTable).where(eq(usersTable.username, username));
+        if (existingUser.length > 0) {
+            res.status(403).json({ message: 'User already exists' });
+        } else {
+            await db.insert(usersTable).values({ username, password }).returning();
+            const token = generateJwt({ username });
+            res.json({ message: "User created successfully", token });
+        }
+    } catch (error) {
+        res.status(403).json({ error: error.message });
     }
-})
+});
 
 // create signin route
-app.post('/gadgets/signin', (req, res) => {
-    const { username, password } = req.headers;
-    const user = USERS.find(u => u.username === username && u.password === password)
-    if (user) {
-        const token = generateJwt(user);
-        res.json({ message: "Logged in successfully", token })
-    }
-    else {
-        res.status(403).json({ message: "User authentication failed" })
+app.post('/gadgets/signin', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const user = await db.select().from(usersTable).where(and(eq(usersTable.username, username), eq(usersTable.password, password)));
+        if (user.length > 0) {
+            const token = generateJwt(user[0]);
+            res.json({ message: "Logged in successfully", token });
+        } else {
+            res.status(403).json({ message: "User authentication failed" });
+        }
+    } catch (error) {
+        res.status(403).json({ error: error.message });
     }
 });
 
@@ -76,24 +81,24 @@ app.get('/gadgets', userAuthenticate, async (req, res) => {
         }));
         res.status(200).json({ gadgets: gadgetsWithProbability });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(403).json({ error: error.message });
     }
 });
 
 // Add a new gadget
-app.post('/gadgets/add', async (req, res) => {
+app.post('/gadgets/add', userAuthenticate, async (req, res) => {
     try {
         const addNewGadget = await db.insert(gadgetsTable).values({
             name: 'The ' + generate(),
         }).returning();
         res.status(201).json(addNewGadget);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(403).json({ error: error.message });
     }
 });
 
 // Update a gadget by ID
-app.patch('/gadgets/update/:id', async (req, res) => {
+app.patch('/gadgets/update/:id', userAuthenticate, async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     try {
@@ -103,12 +108,12 @@ app.patch('/gadgets/update/:id', async (req, res) => {
             .returning();
         res.status(200).json(updatedGadget);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(403).json({ error: error.message });
     }
 });
 
 // Delete (decommission) a gadget by ID
-app.delete('/gadgets/delete/:id', async (req, res) => {
+app.delete('/gadgets/delete/:id', userAuthenticate, async (req, res) => {
     const { id } = req.params;
     try {
         const decommissionedAt = new Date();
@@ -123,7 +128,7 @@ app.delete('/gadgets/delete/:id', async (req, res) => {
         res.status(200).json(updatedGadget);
     } catch (error) {
         console.log(error)
-        res.status(500).json({
+        res.status(403).json({
             error: error.message
         });
     }
