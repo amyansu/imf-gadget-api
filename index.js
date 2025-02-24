@@ -5,6 +5,7 @@ import { gadgetsTable, usersTable } from './db/schema.js';
 import { generate } from 'random-words';
 import { and, eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 
 const app = express();
 const port = 3000;
@@ -26,14 +27,13 @@ const userAuthenticate = (req, res, next) => {
         const token = authHeader.split(' ')[1];
         jwt.verify(token, secretKey, (error, user) => {
             if (error) {
-                return res.status(403).json({ error: error.message })
+                return res.status(403).json({ error: error.message });
             }
             req.user = user;
             next();
-        })
-    }
-    else {
-        return res.status(403).json({ message: "Admin authentication failed" })
+        });
+    } else {
+        return res.status(403).json({ message: "Admin authentication failed" });
     }
 }
 
@@ -45,12 +45,13 @@ app.post('/gadgets/signup', async (req, res) => {
         if (existingUser.length > 0) {
             res.status(403).json({ message: 'User already exists' });
         } else {
-            await db.insert(usersTable).values({ username, password }).returning();
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await db.insert(usersTable).values({ username, password: hashedPassword }).returning();
             const token = generateJwt({ username });
             res.json({ message: "User created successfully", token });
         }
     } catch (error) {
-        res.status(403).json({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -58,18 +59,17 @@ app.post('/gadgets/signup', async (req, res) => {
 app.post('/gadgets/signin', async (req, res) => {
     try {
         const { username, password } = req.body;
-        const user = await db.select().from(usersTable).where(and(eq(usersTable.username, username), eq(usersTable.password, password)));
-        if (user.length > 0) {
+        const user = await db.select().from(usersTable).where(eq(usersTable.username, username));
+        if (user.length > 0 && await bcrypt.compare(password, user[0].password)) {
             const token = generateJwt(user[0]);
             res.json({ message: "Logged in successfully", token });
         } else {
             res.status(403).json({ message: "User authentication failed" });
         }
     } catch (error) {
-        res.status(403).json({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
 });
-
 
 // Get all gadgets
 app.get('/gadgets', userAuthenticate, async (req, res) => {
@@ -81,7 +81,7 @@ app.get('/gadgets', userAuthenticate, async (req, res) => {
         }));
         res.status(200).json({ gadgets: gadgetsWithProbability });
     } catch (error) {
-        res.status(403).json({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -93,7 +93,7 @@ app.post('/gadgets/add', userAuthenticate, async (req, res) => {
         }).returning();
         res.status(201).json(addNewGadget);
     } catch (error) {
-        res.status(403).json({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -108,7 +108,7 @@ app.patch('/gadgets/update/:id', userAuthenticate, async (req, res) => {
             .returning();
         res.status(200).json(updatedGadget);
     } catch (error) {
-        res.status(403).json({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -127,13 +127,16 @@ app.delete('/gadgets/delete/:id', userAuthenticate, async (req, res) => {
 
         res.status(200).json(updatedGadget);
     } catch (error) {
-        console.log(error)
-        res.status(403).json({
-            error: error.message
-        });
+        res.status(500).json({ error: error.message });
     }
-})
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Something went wrong!' });
+});
 
 app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
-})
+    console.log(`Example app listening on port ${port}`);
+});
