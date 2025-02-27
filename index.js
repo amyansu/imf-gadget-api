@@ -3,32 +3,34 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import express from 'express';
 import { gadgetsTable, usersTable } from './db/schema.js';
 import { generate } from 'random-words';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
+// Express app setup
 const app = express();
 const port = 3000;
-
 app.use(express.json());
 
+// Database connection setup
 const db = drizzle(process.env.DATABASE_URL);
 
+// JWT Secret Key
 const secretKey = process.env.JWT_SECRET;
 
+// Generate JWT Token
 const generateJwt = (user) => {
-    const payload = { username: user.username };
+    const payload = { id: user.id, username: user.username };
     return jwt.sign(payload, secretKey, { expiresIn: '1h' });
 }
 
+// User Authentication Middleware
 const userAuthenticate = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (authHeader) {
         const token = authHeader.split(' ')[1];
         jwt.verify(token, secretKey, (error, user) => {
-            if (error) {
-                return res.status(403).json({ error: error.message });
-            }
+            if (error) return res.status(403).json({ error: error.message });
             req.user = user;
             next();
         });
@@ -74,7 +76,7 @@ app.post('/gadgets/signin', async (req, res) => {
 // Get all gadgets
 app.get('/gadgets', userAuthenticate, async (req, res) => {
     try {
-        const allGadgets = await db.select().from(gadgetsTable);
+        const allGadgets = await db.select().from(gadgetsTable).where(eq(gadgetsTable.userId, req.user.id));
         const gadgetsWithProbability = allGadgets.map(gadget => ({
             ...gadget,
             probability: `${Math.floor(Math.random() * 100) + 1}% success probability`
@@ -90,6 +92,7 @@ app.post('/gadgets/add', userAuthenticate, async (req, res) => {
     try {
         const addNewGadget = await db.insert(gadgetsTable).values({
             name: 'The ' + generate(),
+            userId: req.user.id
         }).returning();
         res.status(201).json(addNewGadget);
     } catch (error) {
