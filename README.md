@@ -1,55 +1,106 @@
 # IMF Gadget API
 
-This is the IMF Gadget API, a Node.js application that provides an API for managing gadgets and user authentication.
+## 🚀 Introduction
+The **IMF Gadget API** is a simple CRUD API built with **Node.js, Express, PostgreSQL (NeonDB), and Drizzle ORM**. It allows users to **sign up, sign in, and manage their own gadgets**. Each gadget is linked to a specific user.
 
-## Features
+---
 
-- User signup and signin with JWT authentication
-- CRUD operations for gadgets
-- Middleware for user authentication
-- Database schema defined using Drizzle ORM
+## 📌 Features
+- **User Authentication** (Signup & Signin using JWT & Bcrypt)
+- **Secure Password Storage**
+- **CRUD Operations on Gadgets** (Create, Read, Update, Delete)
+- **Each User Manages Their Own Gadgets**
+- **Drizzle ORM with NeonDB for Database Management**
+- **Random Gadget Name Generation**
+- **Error Handling & Validation**
 
-## Project Structure
+---
 
-## Getting Started
+## 🏗️ Tech Stack
+- **Node.js**
+- **Express.js**
+- **Drizzle ORM**
+- **PostgreSQL (NeonDB)**
+- **Bcrypt (Password Hashing)**
+- **JWT (Authentication)**
+- **Dotenv (Environment Variables)**
+- **Random Words (Generate Gadget Names)**
 
-### Prerequisites
+---
 
-- Node.js
-- PostgreSQL
+## 🔧 Installation & Setup
 
-### Installation
+### 1️⃣ Clone the Repository
+```sh
+git clone https://github.com/amyansu/imf-gadget-api.git
+cd imf-gadget-api
+```
 
-1. Clone the repository:
+### 2️⃣ Install Dependencies
+```sh
+npm install
+```
 
-   ```
-   git clone https://github.com/yourusername/imf-gadget-api.git
-   cd imf-gadget-api
-   ```
+### 3️⃣ Set Up Environment Variables
+Create a `.env` file in the root directory and add:
+```env
+DATABASE_URL=your_neondb_url
+JWT_SECRET=your_secret_key
+```
 
-2. Install dependencies:
+### 4️⃣ Start the Server
+```sh
+node index.js
+```
+Server runs on **http://localhost:3000**
 
-   ```
-   npm install
-   ```
+---
 
-3. Create a [.env](http://_vscodecontentref_/6) file in the root directory and add your database URL and JWT secret:
+## 📌 API Endpoints
 
-   ```
-   DATABASE_URL=your_database_url
-   JWT_SECRET=your_jwt_secret
-   ```
+### 📝 **Authentication Routes**
 
-4. Run the application:
-   ```
-   npm start
-   ```
+#### 🔹 **User Signup**
+**Endpoint:** `POST /gadgets/signup`
+- **Body:** `{ "username": "example", "password": "password123" }`
+- **Response:** `{ "message": "User created successfully", "token": "..." }`
 
-### API Endpoints
+#### 🔹 **User Signin**
+**Endpoint:** `POST /gadgets/signin`
+- **Body:** `{ "username": "example", "password": "password123" }`
+- **Response:** `{ "message": "Logged in successfully", "token": "..." }`
 
-- **POST /gadgets/signup**: User signup
-- **POST /gadgets/signin**: User signin
-- **GET /gadgets**: Get all gadgets (requires authentication)
-- **POST /gadgets/add**: Add a new gadget (requires authentication)
-- **PATCH /gadgets/update/:id**: Update a gadget by ID (requires authentication)
-- **DELETE /gadgets/delete/:id**: Delete (decommission) a gadget by ID (requires authentication)
+### 🛠️ **Gadget Routes (Require Authentication)**
+🔹 **Include JWT Token in `Authorization` Header**: `Authorization: Bearer <your_token>`
+
+#### 📌 **Get User's Gadgets**
+**Endpoint:** `GET /gadgets`
+- **Response:** `[{ "id": "uuid", "name": "The Gadget", "status": "Active" }]`
+
+#### 📌 **Add a New Gadget**
+**Endpoint:** `POST /gadgets/add`
+- **Response:** `{ "id": "uuid", "name": "The Gadget" }`
+
+#### 📌 **Update Gadget Status**
+**Endpoint:** `PATCH /gadgets/update/:id`
+- **Body:** `{ "status": "Updated Status" }`
+- **Response:** `{ "id": "uuid", "status": "Destroyed" }`
+
+#### 📌 **Delete (Decommission) Gadget**
+**Endpoint:** `DELETE /gadgets/delete/:id`
+- **Response:** `{ "id": "uuid", "status": "Decommissioned" }`
+
+---
+
+## 🚀 Future Enhancements
+- ✅ User Profile Management
+- ✅ Gadget Filtering & Sorting
+- ✅ Role-Based Access Control (Admin/User)
+- ✅ API Documentation with Swagger
+
+---
+
+## 👨‍💻 Author
+**[Amyansu]**  
+GitHub: [@amyansu](https://github.com/amyansu)
+
