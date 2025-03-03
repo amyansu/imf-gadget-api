@@ -61,12 +61,12 @@ Server runs on **http://localhost:3000**
 ### 📝 **Authentication Routes**
 
 #### 🔹 **User Signup**
-**Endpoint:** `POST /gadgets/signup`
+**Endpoint:** `POST /auth/signup`
 - **Body:** `{ "username": "example", "password": "password123" }`
 - **Response:** `{ "message": "User created successfully", "token": "..." }`
 
 #### 🔹 **User Signin**
-**Endpoint:** `POST /gadgets/signin`
+**Endpoint:** `POST /auth/signin`
 - **Body:** `{ "username": "example", "password": "password123" }`
 - **Response:** `{ "message": "Logged in successfully", "token": "..." }`
 
