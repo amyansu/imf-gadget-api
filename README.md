@@ -92,14 +92,6 @@ Server runs on **http://localhost:3000**
 
 ---
 
-## 🚀 Future Enhancements
-- ✅ User Profile Management
-- ✅ Gadget Filtering & Sorting
-- ✅ Role-Based Access Control (Admin/User)
-- ✅ API Documentation with Swagger
-
----
-
 ## 👨‍💻 Author
 **[Amyansu]**  
 GitHub: [@amyansu](https://github.com/amyansu)
