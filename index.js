@@ -1,12 +1,13 @@
 import express from 'express';
 import authRoutes from "./routes/auth.js";
 import gadgetRoutes from "./routes/gadgets.js";
+import cors from 'cors';
 
 // Express app setup
 const app = express();
 const port = 3000;
 app.use(express.json());
-
+app.use(cors());
 
 app.use("/auth", authRoutes);
 app.use("/gadgets", gadgetRoutes);
